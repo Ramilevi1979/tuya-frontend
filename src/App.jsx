@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, AirVent, Power, RefreshCw, Wifi, WifiOff, Thermometer, Plus, Minus, Lock, LogOut } from 'lucide-react';
+import { Tv, AirVent, Power, RefreshCw, Wifi, WifiOff, Thermometer, Plus, Minus, Lock, LogOut, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const API_BASE_URL = 'https://tuya-backend-irpd.onrender.com/api';
 const GOOGLE_CLIENT_ID = '339873617760-a6clnch30qndp1qccv2bhr94d7e79br3.apps.googleusercontent.com';
@@ -85,6 +85,7 @@ export default function App() {
               console.error('Failed to fetch remotes for hub', device.id, e);
             }
           } else {
+            // מכשיר רגיל (כמו מתג חכם של דוד, תאורה וכו')
             allEndpoints.push({
               ...device,
               isVirtualIr: false,
@@ -117,6 +118,30 @@ export default function App() {
       const data = await response.json();
       if (!data.success) {
         alert(`❌ שגיאה מהשרת: ${data.error}`);
+      }
+    } catch (err) {
+      alert('שגיאה בתקשורת עם השרת');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const sendDeviceCommand = async (deviceId, code, value) => {
+    const key = `${deviceId}-${code}`;
+    setActionLoading((prev) => ({ ...prev, [key]: true }));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, value }),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        alert(`❌ שגיאה מהשרת: ${data.error}`);
+      } else {
+        fetchData(); // רענון נתונים לאחר הפקודה
       }
     } catch (err) {
       alert('שגיאה בתקשורת עם השרת');
@@ -256,8 +281,45 @@ export default function App() {
                   )}
                 </div>
               );
+            } else {
+              // הצגת מתג חכם / דוד שמש / מכשיר רגיל
+              const isOn = item.status && item.status.some(s => s.code.startsWith('switch') && s.value === true);
+              const switchCode = item.status && item.status.find(s => s.code.startsWith('switch'))?.code || 'switch_1';
+
+              return (
+                <div key={item.id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Power size={22} color={isOn ? '#22c55e' : '#64748b'} />
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{item.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>קטגוריה: {item.category}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {item.online ? (
+                      <span style={{ color: 'green', fontSize: '0.8rem' }}><Wifi size={14} style={{display:'inline', verticalAlign:'middle'}}/></span>
+                    ) : (
+                      <span style={{ color: 'gray', fontSize: '0.8rem' }}><WifiOff size={14} style={{display:'inline', verticalAlign:'middle'}}/></span>
+                    )}
+                    <button 
+                      onClick={() => sendDeviceCommand(item.id, switchCode, !isOn)}
+                      style={{ 
+                        padding: '8px 16px', 
+                        borderRadius: '8px', 
+                        border: 'none', 
+                        backgroundColor: isOn ? '#ef4444' : '#22c55e', 
+                        color: '#fff', 
+                        fontWeight: 'bold', 
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {isOn ? 'כיבוי' : 'הדלקה'}
+                    </button>
+                  </div>
+                </div>
+              );
             }
-            return null;
           })}
         </div>
       )}

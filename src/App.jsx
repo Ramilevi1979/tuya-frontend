@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, AirVent, Power, RefreshCw, Wifi, WifiOff, Thermometer, Plus, Minus, Lock, LogOut, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Tv, AirVent, Power, RefreshCw, Wifi, WifiOff, Thermometer, Plus, Minus, Lock, LogOut } from 'lucide-react';
 
 const API_BASE_URL = 'https://tuya-backend-irpd.onrender.com/api';
 const GOOGLE_CLIENT_ID = '339873617760-a6clnch30qndp1qccv2bhr94d7e79br3.apps.googleusercontent.com';
@@ -9,7 +9,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [devices, setDevices] = useState([]);
   const [endpoints, setEndpoints] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
   const [acParams, setAcParams] = useState({
@@ -85,7 +85,7 @@ export default function App() {
               console.error('Failed to fetch remotes for hub', device.id, e);
             }
           } else {
-            // מכשיר רגיל (כמו מתג חכם של דוד, תאורה וכו')
+            // מכשיר רגיל (דוד שמש, מתגים וכדומה)
             allEndpoints.push({
               ...device,
               isVirtualIr: false,
@@ -134,14 +134,14 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, value }),
+        body: JSON.stringify({ commands: [{ code, value }] }),
       });
 
       const data = await response.json();
       if (!data.success) {
-        alert(`❌ שגיאה מהשרת: ${data.error}`);
+        alert(`❌ שגיאה מהשרת: ${data.error || JSON.stringify(data)}`);
       } else {
-        fetchData(); // רענון נתונים לאחר הפקודה
+        fetchData(); // רענון הנתונים
       }
     } catch (err) {
       alert('שגיאה בתקשורת עם השרת');
@@ -282,40 +282,60 @@ export default function App() {
                 </div>
               );
             } else {
-              // הצגת מתג חכם / דוד שמש / מכשיר רגיל
-              const isOn = item.status && item.status.some(s => s.code.startsWith('switch') && s.value === true);
-              const switchCode = item.status && item.status.find(s => s.code.startsWith('switch'))?.code || 'switch_1';
+              // מכשיר רגיל (דוד שמש / מתג) - נציג את כל מתגי ה-status הזמינים
+              const statuses = item.status || [];
 
               return (
-                <div key={item.id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Power size={22} color={isOn ? '#22c55e' : '#64748b'} />
+                <div key={item.id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Power size={22} color="#0284c7" />
+                      <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{item.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>קטגוריה: {item.category} (ID: {item.id})</div>
+                      </div>
+                    </div>
                     <div>
-                      <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{item.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>קטגוריה: {item.category}</div>
+                      {item.online ? (
+                        <span style={{ color: 'green', fontSize: '0.85rem' }}><Wifi size={14} style={{display:'inline', verticalAlign:'middle'}}/> מחובר</span>
+                      ) : (
+                        <span style={{ color: 'gray', fontSize: '0.85rem' }}><WifiOff size={14} style={{display:'inline', verticalAlign:'middle'}}/> לא מחובר</span>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {item.online ? (
-                      <span style={{ color: 'green', fontSize: '0.8rem' }}><Wifi size={14} style={{display:'inline', verticalAlign:'middle'}}/></span>
+
+                  {/* הצגת כפתור לכל מתג שנמצא ב-status (למשל switch_1, switch_2 וכו') */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    {statuses.length === 0 ? (
+                      <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>אין נתוני סטטוס זמינים למכשיר זה</p>
                     ) : (
-                      <span style={{ color: 'gray', fontSize: '0.8rem' }}><WifiOff size={14} style={{display:'inline', verticalAlign:'middle'}}/></span>
+                      statuses.map((st) => {
+                        const isSwitchCode = st.code.includes('switch');
+                        if (!isSwitchCode) return null; // מציגים רק מתגים
+
+                        return (
+                          <div key={st.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#334155' }}>
+                              {st.code}: {st.value ? '🟢 דלוק' : '🔴 כבוי'}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button 
+                                onClick={() => sendDeviceCommand(item.id, st.code, true)}
+                                style={{ backgroundColor: '#22c55e', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}
+                              >
+                                הדלק
+                              </button>
+                              <button 
+                                onClick={() => sendDeviceCommand(item.id, st.code, false)}
+                                style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}
+                              >
+                                כבה
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
-                    <button 
-                      onClick={() => sendDeviceCommand(item.id, switchCode, !isOn)}
-                      style={{ 
-                        padding: '8px 16px', 
-                        borderRadius: '8px', 
-                        border: 'none', 
-                        backgroundColor: isOn ? '#ef4444' : '#22c55e', 
-                        color: '#fff', 
-                        fontWeight: 'bold', 
-                        cursor: 'pointer',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      {isOn ? 'כיבוי' : 'הדלקה'}
-                    </button>
                   </div>
                 </div>
               );

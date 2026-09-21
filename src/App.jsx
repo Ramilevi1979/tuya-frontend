@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = ''; 
+// כתובת ה-Backend ב-Render
+const API_BASE = 'https://tuya-backend-irpd.onrender.com'; 
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('automations');

@@ -191,6 +191,24 @@ export default function App() {
     }
   };
 
+  const handleTempChange = (infraredId, remoteId, delta) => {
+    const newTemp = Math.min(30, Math.max(16, acParams.temp + delta));
+    setAcParams((prev) => ({ ...prev, temp: newTemp }));
+    sendAcCommand(infraredId, remoteId, 'temp', newTemp);
+  };
+
+  const handleModeChange = (infraredId, remoteId, newMode) => {
+    const modeNum = Number(newMode);
+    setAcParams((prev) => ({ ...prev, mode: modeNum }));
+    sendAcCommand(infraredId, remoteId, 'mode', modeNum);
+  };
+
+  const handleWindChange = (infraredId, remoteId, newWind) => {
+    const windNum = Number(newWind);
+    setAcParams((prev) => ({ ...prev, wind: windNum }));
+    sendAcCommand(infraredId, remoteId, 'wind', windNum);
+  };
+
   if (!user) {
     return (
       <div style={{ fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', direction: 'rtl', padding: '20px' }}>
@@ -245,7 +263,75 @@ export default function App() {
           {!loading && !error && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {endpoints.map((item) => {
-                if (!item.isVirtualIr) {
+                if (item.isVirtualIr) {
+                  const isAc = item.category_id === '5' || item.brand_name === 'Tadiran';
+
+                  return (
+                    <div key={item.remote_id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {isAc ? <AirVent size={22} color="#2563eb" /> : <Tv size={22} color="#9333ea" />}
+                          <div>
+                            <div style={{ fontWeight: 'bold' }}>{item.remote_name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>מותג: {item.brand_name}</div>
+                          </div>
+                        </div>
+                        <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
+                      </div>
+
+                      {isAc && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                              <Thermometer size={18} color="#2563eb" />
+                              <span>טמפרטורה: {acParams.temp}°C</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={() => handleTempChange(item.infraredId, item.remote_id, -1)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', background: '#f1f5f9', cursor: 'pointer' }}><Minus size={14} /></button>
+                              <button onClick={() => handleTempChange(item.infraredId, item.remote_id, 1)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', background: '#f1f5f9', cursor: 'pointer' }}><Plus size={14} /></button>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>מצב עבודה:</label>
+                              <select 
+                                value={acParams.mode} 
+                                onChange={(e) => handleModeChange(item.infraredId, item.remote_id, e.target.value)}
+                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem' }}
+                              >
+                                <option value="1">קירור (Cool)</option>
+                                <option value="4">חימום (Heat)</option>
+                                <option value="0">אוטומטי (Auto)</option>
+                                <option value="2">ייבוש (Dry)</option>
+                                <option value="3">מאוורר (Fan)</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569' }}>עוצמת מאוורר:</label>
+                              <select 
+                                value={acParams.wind} 
+                                onChange={(e) => handleWindChange(item.infraredId, item.remote_id, e.target.value)}
+                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem' }}
+                              >
+                                <option value="0">אוטומטי (Auto)</option>
+                                <option value="1">נמוך (Low)</option>
+                                <option value="2">בינוני (Mid)</option>
+                                <option value="3">גבוה (High)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                            <button onClick={() => sendAcCommand(item.infraredId, item.remote_id, 'power', 1)} style={{ flex: 1, backgroundColor: '#22c55e', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>הדלק מזגן</button>
+                            <button onClick={() => sendAcCommand(item.infraredId, item.remote_id, 'power', 0)} style={{ flex: 1, backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>כבה מזגן</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
                   const statuses = item.status || [];
                   return (
                     <div key={item.id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
@@ -254,32 +340,35 @@ export default function App() {
                           <Power size={22} color="#0284c7" />
                           <div>
                             <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {item.id}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>קטגוריה: {item.category}</div>
                           </div>
                         </div>
                         <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        {statuses.map((st) => {
-                          if (!st.code.includes('switch')) return null;
-                          return (
-                            <div key={st.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#334155' }}>
-                                {st.code}: {st.value ? '🟢 דלוק' : '🔴 כבוי'}
-                              </span>
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                <button onClick={() => sendDeviceCommand(item.id, st.code, true)} style={{ backgroundColor: '#22c55e', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>הדלק</button>
-                                <button onClick={() => sendDeviceCommand(item.id, st.code, false)} style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>כבה</button>
+                        {statuses.length === 0 ? (
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>אין נתוני סטטוס זמינים למכשיר זה</p>
+                        ) : (
+                          statuses.map((st) => {
+                            if (!st.code.includes('switch')) return null;
+                            return (
+                              <div key={st.code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#334155' }}>
+                                  {st.code}: {st.value ? '🟢 דלוק' : '🔴 כבוי'}
+                                </span>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button onClick={() => sendDeviceCommand(item.id, st.code, true)} style={{ backgroundColor: '#22c55e', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>הדלק</button>
+                                  <button onClick={() => sendDeviceCommand(item.id, st.code, false)} style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}>כבה</button>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   );
                 }
-                return null;
               })}
             </div>
           )}
@@ -361,7 +450,7 @@ export default function App() {
               <p style={{ color: '#64748b', fontSize: '0.85rem' }}>אין עדיין אוטומציות מוגדרות.</p>
             ) : (
               automations.map(aut => (
-                <div key={aut.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1',marginBottom: '8px' }}>
+                <div key={aut.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '8px' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{aut.title} ({aut.code})</div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>שעה: {aut.time} | כיבוי אוטומטי: {aut.durationMinutes} דקות</div>

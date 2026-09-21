@@ -14,14 +14,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // הגדרות אוטומציה חדשות - פשוטות ואנושיות
   const [newAuto, setNewAuto] = useState({
-    title: 'הפעלת מכשיר',
+    title: 'הדלקת דוד בבוקר',
     deviceId: '',
-    code: 'switch_1',
-    value: true,
+    action: 'turn_on', // אפשרויות: 'turn_on', 'turn_off'
     time: '07:00',
     days: [0, 1, 2, 3, 4, 5, 6],
-    durationMinutes: 45 
+    durationMinutes: 45 // 0 אומר ללא כיבוי אוטומטי
   });
 
   const [acParams, setAcParams] = useState({
@@ -125,11 +125,41 @@ export default function App() {
 
   const createAutomation = async (e) => {
     e.preventDefault();
+    if (!newAuto.deviceId) {
+      alert("אנא בחר מכשיר");
+      return;
+    }
+
+    // תרגום חכם של הנתונים לפני שליחה לשרת
+    const selectedDev = endpoints.find(d => 
+      (d.isVirtualIr ? d.remote_id : d.id) === newAuto.deviceId
+    );
+    
+    if (!selectedDev) {
+        alert("שגיאה בזיהוי המכשיר");
+        return;
+    }
+
+    const isAc = selectedDev.isVirtualIr && (selectedDev.category_id === '5' || selectedDev.brand_name === 'Tadiran');
+    const isTv = selectedDev.isVirtualIr && !isAc;
+    const isSwitch = !selectedDev.isVirtualIr;
+
+    let finalPayload = {
+      title: newAuto.title,
+      deviceId: selectedDev.id || selectedDev.remote_id, // שומרים את ה-ID הרלוונטי (למזגן זה ה-remote_id)
+      infraredId: selectedDev.infraredId, // רלוונטי רק למזגנים
+      type: isAc ? 'ac' : (isTv ? 'tv' : 'switch'),
+      action: newAuto.action, // 'turn_on' או 'turn_off'
+      time: newAuto.time,
+      days: newAuto.days,
+      durationMinutes: newAuto.durationMinutes
+    };
+
     try {
       const res = await fetch(`${API_BASE_URL}/automations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAuto),
+        body: JSON.stringify(finalPayload),
       });
       const data = await res.json();
       if (data.success) {
@@ -209,6 +239,20 @@ export default function App() {
     sendAcCommand(infraredId, remoteId, 'wind', windNum);
   };
 
+  // ימים בשבוע
+  const daysOfWeek = [
+    { num: 0, label: 'א' }, { num: 1, label: 'ב' }, { num: 2, label: 'ג' },
+    { num: 3, label: 'ד' }, { num: 4, label: 'ה' }, { num: 5, label: 'ו' }, { num: 6, label: 'ש' }
+  ];
+
+  const toggleDay = (dayNum) => {
+    setNewAuto(prev => {
+      const isSelected = prev.days.includes(dayNum);
+      const newDays = isSelected ? prev.days.filter(d => d !== dayNum) : [...prev.days, dayNum].sort();
+      return { ...prev, days: newDays };
+    });
+  };
+
   if (!user) {
     return (
       <div style={{ fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', direction: 'rtl', padding: '20px' }}>
@@ -273,7 +317,7 @@ export default function App() {
                           {isAc ? <AirVent size={22} color="#2563eb" /> : <Tv size={22} color="#9333ea" />}
                           <div>
                             <div style={{ fontWeight: 'bold' }}>{item.remote_name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>מותג: {item.brand_name} (IR Hub: {item.infraredId})</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>מותג: {item.brand_name}</div>
                           </div>
                         </div>
                         <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
@@ -340,7 +384,6 @@ export default function App() {
                           <Power size={22} color="#0284c7" />
                           <div>
                             <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {item.id}</div>
                           </div>
                         </div>
                         <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
@@ -376,72 +419,93 @@ export default function App() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <form onSubmit={createAutomation} style={{ background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>➕ הוסף תזמון / טיימר אוטומטי</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>➕ הוספת תזמון למכשיר</h3>
             
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>שם האוטומציה:</label>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>שם האוטומציה (למשל "דוד בבוקר"):</label>
               <input 
                 type="text" 
                 value={newAuto.title} 
                 onChange={(e) => setNewAuto({...newAuto, title: e.target.value})} 
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>בחר מכשיר להפעלה:</label>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>בחר מכשיר:</label>
               <select 
                 value={newAuto.deviceId} 
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  const dev = devices.find(d => d.id === selectedId);
-                  // זיהוי חכם: אם זה מתג/דוד ניקח switch_1, אם זה מכשיר אחר נתאים
-                  const defaultCode = dev?.category === 'wnykq' ? 'power' : (dev?.status?.find(s => s.code.includes('switch'))?.code || 'switch_1');
-                  setNewAuto({...newAuto, deviceId: selectedId, code: defaultCode});
-                }}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#fff' }}
+                onChange={(e) => setNewAuto({...newAuto, deviceId: e.target.value})}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#fff' }}
               >
-                <option value="">בחר מכשיר מהרשימה</option>
-                {devices.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.category})</option>
+                <option value="">בחר מהרשימה...</option>
+                {endpoints.map(d => (
+                  <option key={d.isVirtualIr ? d.remote_id : d.id} value={d.isVirtualIr ? d.remote_id : d.id}>
+                    {d.isVirtualIr ? d.remote_name : d.name}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>קוד פקודה (Code):</label>
-              <input 
-                type="text" 
-                value={newAuto.code} 
-                onChange={(e) => setNewAuto({...newAuto, code: e.target.value})} 
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#f8fafc' }}
-                placeholder="למשל: switch_1 או power"
-              />
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>פעולה לביצוע:</label>
+              <select 
+                value={newAuto.action} 
+                onChange={(e) => setNewAuto({...newAuto, action: e.target.value})}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#fff' }}
+              >
+                <option value="turn_on">הדלקה</option>
+                <option value="turn_off">כיבוי</option>
+              </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>בימים:</label>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {daysOfWeek.map(day => (
+                  <button
+                    key={day.num}
+                    type="button"
+                    onClick={() => toggleDay(day.num)}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '50%',
+                      border: newAuto.days.includes(day.num) ? 'none' : '1px solid #cbd5e1',
+                      background: newAuto.days.includes(day.num) ? '#2563eb' : '#fff',
+                      color: newAuto.days.includes(day.num) ? '#fff' : '#64748b',
+                      fontWeight: 'bold', cursor: 'pointer'
+                    }}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>שעה להפעלה:</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>בשעה:</label>
                 <input 
                   type="time" 
                   value={newAuto.time} 
                   onChange={(e) => setNewAuto({...newAuto, time: e.target.value})} 
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>כיבוי אוטומטי אחרי (דקות):</label>
+                <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>לכבות אוטומטית אחרי (דקות):</label>
                 <input 
                   type="number" 
                   value={newAuto.durationMinutes} 
                   onChange={(e) => setNewAuto({...newAuto, durationMinutes: Number(e.target.value)})} 
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  placeholder="0 = ללא כיבוי אוטומטי"
                 />
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>* השאר 0 כדי לבטל כיבוי אוטומטי</span>
               </div>
             </div>
 
-            <button type="submit" style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}>
-              שמור אוטומציה חדשה
+            <button type="submit" style={{ backgroundColor: '#2563eb', color: '#fff', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '12px', fontSize: '1rem' }}>
+              שמור אוטומציה
             </button>
           </form>
 
@@ -453,8 +517,11 @@ export default function App() {
               automations.map(aut => (
                 <div key={aut.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '8px' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{aut.title} (קוד: {aut.code})</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>שעה: {aut.time} | כיבוי אוטומטי: {aut.durationMinutes} דקות</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{aut.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                      {aut.action === 'turn_on' ? '🟢 הדלקה' : '🔴 כיבוי'} | שעה: {aut.time} 
+                      {aut.durationMinutes > 0 && ` | +כיבוי אחרי ${aut.durationMinutes} דק'`}
+                    </div>
                   </div>
                   <button onClick={() => deleteAutomation(aut.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
                     <Trash2 size={18} />

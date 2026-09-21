@@ -273,7 +273,7 @@ export default function App() {
                           {isAc ? <AirVent size={22} color="#2563eb" /> : <Tv size={22} color="#9333ea" />}
                           <div>
                             <div style={{ fontWeight: 'bold' }}>{item.remote_name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>מותג: {item.brand_name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>מותג: {item.brand_name} (IR Hub: {item.infraredId})</div>
                           </div>
                         </div>
                         <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
@@ -340,7 +340,7 @@ export default function App() {
                           <Power size={22} color="#0284c7" />
                           <div>
                             <div style={{ fontWeight: 'bold' }}>{item.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>קטגוריה: {item.category}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {item.id}</div>
                           </div>
                         </div>
                         <span style={{ color: item.online ? 'green' : 'gray', fontSize: '0.85rem' }}>{item.online ? 'מחובר' : 'לא מחובר'}</span>
@@ -395,7 +395,8 @@ export default function App() {
                 onChange={(e) => {
                   const selectedId = e.target.value;
                   const dev = devices.find(d => d.id === selectedId);
-                  const defaultCode = dev?.status?.find(s => s.code.includes('switch'))?.code || 'switch_1';
+                  // זיהוי חכם: אם זה מתג/דוד ניקח switch_1, אם זה מכשיר אחר נתאים
+                  const defaultCode = dev?.category === 'wnykq' ? 'power' : (dev?.status?.find(s => s.code.includes('switch'))?.code || 'switch_1');
                   setNewAuto({...newAuto, deviceId: selectedId, code: defaultCode});
                 }}
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#fff' }}
@@ -414,7 +415,7 @@ export default function App() {
                 value={newAuto.code} 
                 onChange={(e) => setNewAuto({...newAuto, code: e.target.value})} 
                 style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#f8fafc' }}
-                placeholder="למשל: switch_1 או switch"
+                placeholder="למשל: switch_1 או power"
               />
             </div>
 
@@ -452,7 +453,7 @@ export default function App() {
               automations.map(aut => (
                 <div key={aut.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '8px' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{aut.title} ({aut.code})</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{aut.title} (קוד: {aut.code})</div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>שעה: {aut.time} | כיבוי אוטומטי: {aut.durationMinutes} דקות</div>
                   </div>
                   <button onClick={() => deleteAutomation(aut.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>

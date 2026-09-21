@@ -14,14 +14,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // הגדרות אוטומציה חדשות - פשוטות ואנושיות
+  // הגדרות אוטומציה חדשות
   const [newAuto, setNewAuto] = useState({
     title: 'הדלקת דוד בבוקר',
     deviceId: '',
-    action: 'turn_on', // אפשרויות: 'turn_on', 'turn_off'
+    action: 'turn_on', // 'turn_on' או 'turn_off'
     time: '07:00',
     days: [0, 1, 2, 3, 4, 5, 6],
-    durationMinutes: 45 // 0 אומר ללא כיבוי אוטומטי
+    durationMinutes: 45 // 0 = ללא כיבוי אוטומטי
   });
 
   const [acParams, setAcParams] = useState({
@@ -100,7 +100,18 @@ export default function App() {
             });
           }
         }
-        setEndpoints(allEndpoints);
+
+        // סינון כפילויות חכם לפי ID
+        const uniqueEndpoints = Array.from(
+          new Map(
+            allEndpoints.map(item => [
+              item.isVirtualIr ? item.remote_id : item.id,
+              item
+            ])
+          ).values()
+        );
+
+        setEndpoints(uniqueEndpoints);
       } else {
         setError(data.error || 'שגיאה במשיכת הנתונים');
       }
@@ -130,7 +141,6 @@ export default function App() {
       return;
     }
 
-    // תרגום חכם של הנתונים לפני שליחה לשרת
     const selectedDev = endpoints.find(d => 
       (d.isVirtualIr ? d.remote_id : d.id) === newAuto.deviceId
     );
@@ -142,17 +152,16 @@ export default function App() {
 
     const isAc = selectedDev.isVirtualIr && (selectedDev.category_id === '5' || selectedDev.brand_name === 'Tadiran');
     const isTv = selectedDev.isVirtualIr && !isAc;
-    const isSwitch = !selectedDev.isVirtualIr;
 
     let finalPayload = {
       title: newAuto.title,
-      deviceId: selectedDev.id || selectedDev.remote_id, // שומרים את ה-ID הרלוונטי (למזגן זה ה-remote_id)
-      infraredId: selectedDev.infraredId, // רלוונטי רק למזגנים
+      deviceId: selectedDev.isVirtualIr ? selectedDev.remote_id : selectedDev.id,
+      infraredId: selectedDev.infraredId || null,
       type: isAc ? 'ac' : (isTv ? 'tv' : 'switch'),
       action: newAuto.action, // 'turn_on' או 'turn_off'
       time: newAuto.time,
       days: newAuto.days,
-      durationMinutes: newAuto.durationMinutes
+      durationMinutes: Number(newAuto.durationMinutes) || 0
     };
 
     try {
@@ -181,6 +190,8 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         fetchAutomations();
+      } else {
+        alert(`❌ שגיאה במחיקה: ${data.error}`);
       }
     } catch (err) {
       alert('שגיאה במחיקת האוטומציה');
@@ -239,7 +250,6 @@ export default function App() {
     sendAcCommand(infraredId, remoteId, 'wind', windNum);
   };
 
-  // ימים בשבוע
   const daysOfWeek = [
     { num: 0, label: 'א' }, { num: 1, label: 'ב' }, { num: 2, label: 'ג' },
     { num: 3, label: 'ד' }, { num: 4, label: 'ה' }, { num: 5, label: 'ו' }, { num: 6, label: 'ש' }
@@ -307,11 +317,12 @@ export default function App() {
           {!loading && !error && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {endpoints.map((item) => {
+                const keyId = item.isVirtualIr ? item.remote_id : item.id;
                 if (item.isVirtualIr) {
                   const isAc = item.category_id === '5' || item.brand_name === 'Tadiran';
 
                   return (
-                    <div key={item.remote_id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
+                    <div key={keyId} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           {isAc ? <AirVent size={22} color="#2563eb" /> : <Tv size={22} color="#9333ea" />}
@@ -378,7 +389,7 @@ export default function App() {
                 } else {
                   const statuses = item.status || [];
                   return (
-                    <div key={item.id} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
+                    <div key={keyId} style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <Power size={22} color="#0284c7" />
@@ -428,6 +439,7 @@ export default function App() {
                 value={newAuto.title} 
                 onChange={(e) => setNewAuto({...newAuto, title: e.target.value})} 
                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                required
               />
             </div>
 
@@ -437,6 +449,7 @@ export default function App() {
                 value={newAuto.deviceId} 
                 onChange={(e) => setNewAuto({...newAuto, deviceId: e.target.value})}
                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px', background: '#fff' }}
+                required
               >
                 <option value="">בחר מהרשימה...</option>
                 {endpoints.map(d => (
@@ -489,6 +502,7 @@ export default function App() {
                   value={newAuto.time} 
                   onChange={(e) => setNewAuto({...newAuto, time: e.target.value})} 
                   style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
+                  required
                 />
               </div>
               <div>
@@ -499,6 +513,7 @@ export default function App() {
                   onChange={(e) => setNewAuto({...newAuto, durationMinutes: Number(e.target.value)})} 
                   style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '4px' }}
                   placeholder="0 = ללא כיבוי אוטומטי"
+                  min="0"
                 />
                 <span style={{ fontSize: '0.7rem', color: '#64748b' }}>* השאר 0 כדי לבטל כיבוי אוטומטי</span>
               </div>

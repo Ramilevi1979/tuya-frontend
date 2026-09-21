@@ -1,38 +1,34 @@
 import React, { useState, useEffect } from 'react';
 
-// כתובת ה-Backend (במידה והפרונטאנד והבקתאנד רצים באותו דומיין / Render השאר מחרוזת ריקה)
 const API_BASE = ''; 
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('automations'); // 'automations' | 'devices' | 'logs'
+  const [activeTab, setActiveTab] = useState('automations');
   const [devices, setDevices] = useState([]);
   const [automations, setAutomations] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
 
-  // טופס יצירת אוטומציה חדשה
   const [formData, setFormData] = useState({
     title: '',
-    type: 'switch', // 'switch' | 'ac'
+    type: 'switch',
     deviceId: '',
     infraredId: '',
-    action: 'turn_on', // 'turn_on' | 'turn_off'
+    action: 'turn_on',
     time: '08:00',
-    days: [0, 1, 2, 3, 4, 5, 6], // ברירת מחדל: כל הימים
+    days: [0, 1, 2, 3, 4, 5, 6],
     durationMinutes: 0
   });
 
   const daysOfWeekNames = ['א\'', 'ב\'', 'ג\'', 'ד\'', 'ה\'', 'ו\'', 'ש\''];
   const fullDaysNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
-  // טעינת נתונים ראשונית
   useEffect(() => {
     fetchDevices();
     fetchAutomations();
     fetchLogs();
 
-    // רענון אוטומטי של הלוגים כל 10 שניות
     const logInterval = setInterval(fetchLogs, 10000);
     return () => clearInterval(logInterval);
   }, []);
@@ -41,8 +37,6 @@ export default function App() {
     setStatusMsg({ text, type });
     setTimeout(() => setStatusMsg({ text: '', type: '' }), 4000);
   };
-
-  // --- API CALLS ---
 
   const fetchDevices = async () => {
     try {
@@ -84,7 +78,6 @@ export default function App() {
     }
   };
 
-  // שליחת פקודה ידנית מתג / דוד
   const handleDeviceCommand = async (deviceId, code, value, deviceName) => {
     setLoading(true);
     try {
@@ -107,30 +100,6 @@ export default function App() {
     }
   };
 
-  // שליחת פקודה ידנית מזגן IR
-  const handleAcCommand = async (infraredId, remoteId, code, value, deviceName) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/ir/${infraredId}/remotes/${remoteId}/ac-command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, value, deviceName })
-      });
-      const data = await res.json();
-      if (data.success) {
-        showStatus(`פקודה למזגן נשלחה בהצלחה`);
-      } else {
-        showStatus(`שגיאה: ${data.error}`, 'error');
-      }
-    } catch (err) {
-      showStatus(`שגיאה בתקשורת: ${err.message}`, 'error');
-    } finally {
-      setLoading(false);
-      fetchLogs();
-    }
-  };
-
-  // שמירת אוטומציה חדשה
   const handleCreateAutomation = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.deviceId || !formData.time) {
@@ -169,7 +138,6 @@ export default function App() {
     }
   };
 
-  // מחיקת אוטומציה
   const handleDeleteAutomation = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/api/automations/${id}`, { method: 'DELETE' });
@@ -183,7 +151,6 @@ export default function App() {
     }
   };
 
-  // toggle יום בטופס
   const toggleDay = (dayIdx) => {
     if (formData.days.includes(dayIdx)) {
       setFormData({ ...formData, days: formData.days.filter(d => d !== dayIdx) });
@@ -192,7 +159,6 @@ export default function App() {
     }
   };
 
-  // --- חישוב צפי ריצה קרובה ---
   const getNextRunForecast = (auto) => {
     if (!auto.days || auto.days.length === 0 || !auto.time) return 'לא מתוזמן';
 
@@ -221,7 +187,6 @@ export default function App() {
     <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-6">
         
-        {/* כותרת ראשית */}
         <header className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -251,18 +216,14 @@ export default function App() {
           </div>
         </header>
 
-        {/* הודעות סטטוס */}
         {statusMsg.text && (
           <div className={`p-4 rounded-xl text-sm font-semibold text-center transition-all ${statusMsg.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
             {statusMsg.text}
           </div>
         )}
 
-        {/* ==================== טאב אוטומציות ==================== */}
         {activeTab === 'automations' && (
           <div className="space-y-6">
-            
-            {/* טופס יצירת אוטומציה */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
               <h2 className="text-lg font-bold text-slate-900 border-b pb-3">➕ יצירת תזמון/אוטומציה חדשה</h2>
               <form onSubmit={handleCreateAutomation} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -383,7 +344,6 @@ export default function App() {
               </form>
             </div>
 
-            {/* לוח תזמונים פעילים וצפי */}
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-slate-900">📅 לוח תזמונים פעילים וצפי הפעלה מלא</h2>
               
@@ -437,11 +397,9 @@ export default function App() {
                 </div>
               )}
             </div>
-
           </div>
         )}
 
-        {/* ==================== טאב מכשירים ==================== */}
         {activeTab === 'devices' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -495,7 +453,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ==================== טאב לוג אירועים ==================== */}
         {activeTab === 'logs' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">

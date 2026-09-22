@@ -151,7 +151,12 @@ export default function App() {
       action: newAuto.action, // 'turn_on' או 'turn_off'
       time: newAuto.time,
       days: newAuto.days,
-      durationMinutes: Number(newAuto.durationMinutes) || 0
+      durationMinutes: Number(newAuto.durationMinutes) || 0,
+      ...(isAc && {
+        temp: Number(newAuto.acTemp),
+        mode: Number(newAuto.acMode),
+        wind: Number(newAuto.acWind)
+      })
     };
 
     try {

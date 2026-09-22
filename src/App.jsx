@@ -474,7 +474,61 @@ export default function App() {
                 <option value="turn_off">כיבוי</option>
               </select>
             </div>
+{/* שדות מותנים למזגן */}
+{(() => {
+  const selectedDev = endpoints.find(d => (d.isVirtualIr ? d.remote_id : d.id) === newAuto.deviceId);
+  const isAc = selectedDev && selectedDev.isVirtualIr && (selectedDev.category_id === '5' || selectedDev.brand_name === 'Tadiran');
+  
+  if (!isAc || newAuto.action !== 'turn_on') return null;
 
+  return (
+    <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid #cbd5e1' }}>
+      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#1e293b' }}>❄️ הגדרות מזגן בהדלקה:</span>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        <div>
+          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>טמפרטורה:</label>
+          <input 
+            type="number" 
+            min="16" max="30" 
+            value={newAuto.acTemp} 
+            onChange={(e) => setNewAuto({...newAuto, acTemp: e.target.value})}
+            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>מצב:</label>
+          <select 
+            value={newAuto.acMode} 
+            onChange={(e) => setNewAuto({...newAuto, acMode: e.target.value})}
+            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+          >
+            <option value="1">קירור</option>
+            <option value="4">חימום</option>
+            <option value="0">אוטומטי</option>
+            <option value="2">ייבוש</option>
+            <option value="3">מאוורר</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>מאוורר:</label>
+          <select 
+            value={newAuto.acWind} 
+            onChange={(e) => setNewAuto({...newAuto, acWind: e.target.value})}
+            style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+          >
+            <option value="0">אוטומטי</option>
+            <option value="1">נמוך</option>
+            <option value="2">בינוני</option>
+            <option value="3">גבוה</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+})()}
             <div>
               <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>בימים:</label>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>

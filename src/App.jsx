@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Tv, AirVent, Power, RefreshCw, Wifi, WifiOff, Thermometer, Plus, Minus, Lock, LogOut, Clock, Calendar, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = 'https://tuya-backend-irpd.onrender.com/api';
@@ -30,23 +31,9 @@ export default function App() {
     wind: 0,
   });
 
-  useEffect(() => {
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleCredentialResponse,
-      });
-
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleButtonDiv'),
-        { theme: 'outline', size: 'large', width: '100%' }
-      );
-    }
-  }, [user]);
-
-  const handleCredentialResponse = (response) => {
+  const handleCredentialResponse = (credentialResponse) => {
     try {
-      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      const payload = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
       if (payload.email === ALLOW_EMAIL) {
         setUser({ name: payload.name, email: payload.email });
         fetchData();
@@ -265,16 +252,24 @@ export default function App() {
 
   if (!user) {
     return (
-      <div style={{ fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', direction: 'rtl', padding: '20px' }}>
-        <div style={{ background: '#fff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1px solid #e2e8f0' }}>
-          <div style={{ background: '#eff6ff', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <Lock size={28} color="#2563eb" />
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <div style={{ fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f8fafc', direction: 'rtl', padding: '20px' }}>
+          <div style={{ background: '#fff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1px solid #e2e8f0' }}>
+            <div style={{ background: '#eff6ff', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Lock size={28} color="#2563eb" />
+            </div>
+            <h1 style={{ fontSize: '1.3rem', marginBottom: '8px', color: '#1e293b' }}>אזור מאובטח - בית חכם</h1>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>הגישה מותרת למשתמש מורשה בלבד באמצעות חשבון Google.</p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleCredentialResponse}
+                onError={() => console.error('Login Failed')}
+                useOneTap
+              />
+            </div>
           </div>
-          <h1 style={{ fontSize: '1.3rem', marginBottom: '8px', color: '#1e293b' }}>אזור מאובטח - בית חכם</h1>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '24px' }}>הגישה מותרת למשתמש מורשה בלבד באמצעות חשבון Google.</p>
-          <div id="googleButtonDiv" style={{ display: 'flex', justifyContent: 'center' }}></div>
         </div>
-      </div>
+      </GoogleOAuthProvider>
     );
   }
 

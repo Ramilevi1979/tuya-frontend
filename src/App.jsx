@@ -21,9 +21,12 @@ export default function App() {
     deviceId: '',
     action: 'turn_on', // 'turn_on' או 'turn_off'
     time: '07:00',
-    days: [0, 1, 2, 3, 4, 5, 6],
-    durationMinutes: 45 // 0 = ללא כיבוי אוטומטי
-  });
+  days: [0, 1, 2, 3, 4, 5, 6],
+  durationMinutes: 45, // 0 = ללא כיבוי אוטומטי
+  acTemp: 24,
+  acMode: 1,
+  acWind: 0
+});
 
   const [acParams, setAcParams] = useState({
     temp: 24,

@@ -52,13 +52,13 @@ export default function App() {
     days: [0, 1, 2, 3, 4, 5, 6],
     durationMinutes: 45, // 0 = ללא כיבוי אוטומטי
     acTemp: 24,
-    acMode: 1,
+    acMode: 0, // 0 = קירור ב-Tuya
     acWind: 0
   });
 
   const [acParams, setAcParams] = useState({
     temp: 24,
-    mode: 1,
+    mode: 0, // 0 = קירור ב-Tuya
     wind: 0,
   });
 
@@ -362,11 +362,11 @@ export default function App() {
                               onChange={(e) => handleModeChange(item.infraredId, devId, e.target.value)}
                               style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.85rem' }}
                             >
-                              <option value="1">קירור (Cool)</option>
-                              <option value="4">חימום (Heat)</option>
-                              <option value="0">אוטומטי (Auto)</option>
-                              <option value="2">ייבוש (Dry)</option>
+                              <option value="0">קירור (Cool)</option>
+                              <option value="1">חימום (Heat)</option>
+                              <option value="2">אוטומטי (Auto)</option>
                               <option value="3">מאוורר (Fan)</option>
+                              <option value="4">ייבוש (Dry)</option>
                             </select>
                           </div>
 
@@ -531,11 +531,11 @@ export default function App() {
                         onChange={(e) => setNewAuto({...newAuto, acMode: e.target.value})}
                         style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
                       >
-                        <option value="1">קירור</option>
-                        <option value="4">חימום</option>
-                        <option value="0">אוטומטי</option>
-                        <option value="2">ייבוש</option>
+                        <option value="0">קירור</option>
+                        <option value="1">חימום</option>
+                        <option value="2">אוטומטי</option>
                         <option value="3">מאוורר</option>
+                        <option value="4">ייבוש</option>
                       </select>
                     </div>
 

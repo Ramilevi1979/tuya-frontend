@@ -1172,3 +1172,30 @@ ul.group {
 .ac-settings .seg button[aria-pressed='true'] {
   background: var(--surface-2);
 }
+
+/* schedule kinds */
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.time-input.compact {
+  padding: 10px 8px;
+  font-size: 24px;
+}
+
+.date-input {
+  direction: ltr;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summary {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--pilot-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}

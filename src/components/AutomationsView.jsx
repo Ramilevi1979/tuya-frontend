@@ -1,15 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarClock, Plus, Trash2 } from 'lucide-react';
-import { MODES, describeDays } from '../lib/constants';
+import { MODES, describeDate, describeDays, describeEvery, formatDuration } from '../lib/constants';
 import { Toggle } from './ui';
-
-export function formatDuration(minutes) {
-  if (minutes === 60) return 'שעה';
-  if (minutes === 90) return 'שעה וחצי';
-  if (minutes === 120) return 'שעתיים';
-  if (minutes % 60 === 0) return `${minutes / 60} שעות`;
-  return `${minutes} דקות`;
-}
 
 export default function AutomationsView({ automations, loaded, onAdd, onToggle, onRemove }) {
   const [confirmId, setConfirmId] = useState(null);
@@ -46,25 +38,41 @@ export default function AutomationsView({ automations, loaded, onAdd, onToggle, 
           {sorted.map((a) => {
             const enabled = a.enabled !== false;
             const turningOn = a.action === 'turn_on';
+            const kind = a.kind || 'weekly';
+            const finished = kind === 'once' && (a.completedAt || a.missedAt);
             return (
               <li key={a.id} className={`arow ${enabled ? '' : 'disabled'}`}>
                 <span className="time">{a.time}</span>
                 <div>
                   <div className="atitle">{a.title}</div>
                   <div className="ameta">
-                    <span className={`badge ${turningOn ? 'on' : ''}`}>{turningOn ? 'הדלקה' : 'כיבוי'}</span>
+                    <span className={`badge ${turningOn ? 'on' : ''}`}>
+                      {kind === 'interval' ? 'מחזורי' : turningOn ? 'הדלקה' : 'כיבוי'}
+                    </span>
+                    {kind === 'once' && <span className="badge">חד פעמי</span>}
+                    {a.completedAt && <span className="badge">בוצע</span>}
+                    {a.missedAt && <span className="badge">לא בוצע</span>}
                     <span>{a.deviceName || 'מכשיר'}</span>
-                    <span>{describeDays(a.days)}</span>
+                    {kind === 'weekly' && <span>{describeDays(a.days)}</span>}
+                    {kind === 'once' && <span>{describeDate(a.date)}</span>}
+                    {kind === 'interval' && (
+                      <>
+                        <span>{describeEvery(a.everyMinutes)}, {formatDuration(a.durationMinutes)} בכל פעם</span>
+                        <span>עד {a.endTime}</span>
+                        <span>{describeDays(a.days)}</span>
+                      </>
+                    )}
                     {a.type === 'ac' && turningOn && a.temp != null && (
                       <span>{(MODES.find((m) => m.value === a.mode) || MODES[0]).label} {a.temp}°</span>
                     )}
-                    {turningOn && a.durationMinutes > 0 && <span>נכבה אחרי {formatDuration(a.durationMinutes)}</span>}
+                    {kind !== 'interval' && turningOn && a.durationMinutes > 0 && <span>נכבה אחרי {formatDuration(a.durationMinutes)}</span>}
                   </div>
                   {a.lastError && <div className="aerror">ההרצה האחרונה נכשלה: {a.lastError}</div>}
                 </div>
                 <div className="acontrols">
                   <Toggle
                     checked={enabled}
+                    disabled={Boolean(finished)}
                     label={enabled ? `השבתת התזמון ${a.title}` : `הפעלת התזמון ${a.title}`}
                     onChange={(next) => onToggle(a.id, next)}
                   />

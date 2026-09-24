@@ -38,3 +38,39 @@ export function describeDays(days) {
   if (key === '56') return 'שישי ושבת';
   return days.map((d) => `${DAYS[d].short}׳`).join(' ');
 }
+
+export function formatDuration(minutes) {
+  if (minutes === 60) return 'שעה';
+  if (minutes === 90) return 'שעה וחצי';
+  if (minutes === 120) return 'שעתיים';
+  if (minutes % 60 === 0) return `${minutes / 60} שעות`;
+  return `${minutes} דקות`;
+}
+
+export function describeEvery(minutes) {
+  if (minutes === 60) return 'כל שעה';
+  if (minutes === 120) return 'כל שעתיים';
+  if (minutes % 60 === 0) return `כל ${minutes / 60} שעות`;
+  return `כל ${minutes} דקות`;
+}
+
+const pad = (n) => String(n).padStart(2, '0');
+
+/** YYYY-MM-DD in the device's local time (what <input type="date"> uses). */
+export function localDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function describeDate(dateKey) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (dateKey === localDateKey()) return 'היום';
+  if (dateKey === localDateKey(tomorrow)) return 'מחר';
+  const [, m, d] = dateKey.split('-').map(Number);
+  return `${d}.${m}`;
+}
+
+export const toMinutes = (hhmm) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};

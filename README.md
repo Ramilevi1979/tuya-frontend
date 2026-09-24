@@ -1,16 +1,18 @@
-# React + Vite
+# הבית שלי – ממשק (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite. עיצוב RTL בעברית, מצב בהיר/כהה אוטומטי.
 
-Currently, two official plugins are available:
+## הרצה מקומית
+```bash
+cp .env.example .env   # ולערוך אם צריך
+npm install
+npm run dev
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## משתני סביבה (Vercel: Settings → Environment Variables)
+| משתנה | תיאור |
+|---|---|
+| `VITE_API_BASE_URL` | כתובת השרת כולל `/api` |
+| `VITE_GOOGLE_CLIENT_ID` | מזהה הלקוח של Google (ציבורי) |
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+אימות המשתמש נעשה בשרת. הממשק רק שולח את אישור Google ומקבל חזרה טוקן שנשמר בדפדפן ל-30 יום.

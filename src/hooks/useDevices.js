@@ -48,10 +48,10 @@ export function useDevices(enabled, toast) {
   }, []);
 
   /** Flip immediately, confirm with the server, undo if it fails. */
-  const toggleChannel = useCallback(async (id, code, next) => {
+  const toggleChannel = useCallback(async (id, code, next, label) => {
     setChannel(id, code, next);
     try {
-      await api.sendSwitch(id, code, next);
+      await api.sendSwitch(id, code, next, label);
       setTimeout(() => load({ silent: true, force: true }), 1500);
     } catch (err) {
       setChannel(id, code, !next);

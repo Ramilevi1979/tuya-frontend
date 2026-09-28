@@ -89,6 +89,29 @@ export function Sheet({ title, onClose, children }) {
   );
 }
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+/**
+ * A 24-hour time picker built from two <select> elements, so the display never
+ * depends on the browser or device's own locale (unlike a native <input type="time">,
+ * which some browsers render as 12-hour with AM/PM regardless of page language).
+ */
+export function TimeField({ label, value, onChange, compact }) {
+  const [h, m] = (value || '00:00').split(':');
+  return (
+    <div className={`time-field ${compact ? 'compact' : ''}`} role="group" aria-label={label}>
+      <select aria-label={`${label}, שעה`} className="time-select" value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)}>
+        {HOURS.map((x) => <option key={x} value={x}>{x}</option>)}
+      </select>
+      <span className="time-colon">:</span>
+      <select aria-label={`${label}, דקה`} className="time-select" value={m} onChange={(e) => onChange(`${h}:${e.target.value}`)}>
+        {MINUTES.map((x) => <option key={x} value={x}>{x}</option>)}
+      </select>
+    </div>
+  );
+}
+
 export function Toasts({ toasts }) {
   return (
     <div className="toasts" role="status" aria-live="polite">

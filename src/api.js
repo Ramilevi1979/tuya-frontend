@@ -48,20 +48,22 @@ export const api = {
   getDevices: ({ refresh = false } = {}) =>
     request(`/devices${refresh ? '?refresh=1' : ''}`).then((d) => d.devices || []),
 
-  sendSwitch: (deviceId, code, value) =>
-    request(`/devices/${deviceId}/command`, { method: 'POST', body: { commands: [{ code, value }] } }),
+  sendSwitch: (deviceId, code, value, label) =>
+    request(`/devices/${deviceId}/command`, { method: 'POST', body: { commands: [{ code, value }], label } }),
 
-  sendAc: (infraredId, remoteId, code, value) =>
-    request(`/ir/${infraredId}/remotes/${remoteId}/ac-command`, { method: 'POST', body: { code, value } }),
+  sendAc: (infraredId, remoteId, code, value, label) =>
+    request(`/ir/${infraredId}/remotes/${remoteId}/ac-command`, { method: 'POST', body: { code, value, label } }),
 
   getAcStatus: (infraredId, remoteId) =>
     request(`/ir/${infraredId}/remotes/${remoteId}/ac-status`).then((d) => d.status),
 
-  sendTvPower: (infraredId, remoteId, remoteIndex) =>
+  sendTvPower: (infraredId, remoteId, remoteIndex, label) =>
     request(`/ir/${infraredId}/remotes/${remoteId}/tv-command`, {
       method: 'POST',
-      body: { key: 'power', remoteIndex },
+      body: { key: 'power', remoteIndex, label },
     }),
+
+  getLog: (limit = 150) => request(`/log?limit=${limit}`).then((d) => d.entries || []),
 
   getAutomations: () => request('/automations').then((d) => d.automations || []),
   createAutomation: (payload) =>

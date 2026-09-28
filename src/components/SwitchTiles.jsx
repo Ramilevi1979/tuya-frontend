@@ -20,7 +20,7 @@ export default function SwitchTiles({ devices, onToggle }) {
             className="tile"
             aria-pressed={on}
             disabled={offline}
-            onClick={() => onToggle(device.id, channel.code, !on)}
+            onClick={() => onToggle(device.id, channel.code, !on, deviceName(device))}
           >
             <span className="tile-top">
               <Icon size={22} />

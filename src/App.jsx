@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock, LayoutGrid, LogOut, RefreshCw } from 'lucide-react';
+import { CalendarClock, History, LayoutGrid, LogOut, RefreshCw } from 'lucide-react';
 import { configureApi } from './api';
 import { clearSession, loadSession, saveSession } from './session';
 import { groupDevices } from './lib/devices';
@@ -9,6 +9,7 @@ import LoginScreen from './components/LoginScreen';
 import DevicesView from './components/DevicesView';
 import AutomationsView from './components/AutomationsView';
 import AutomationSheet from './components/AutomationSheet';
+import LogSheet from './components/LogSheet';
 import { Toasts } from './components/ui';
 
 function useToasts() {
@@ -24,6 +25,8 @@ function useToasts() {
 function Home({ session, onLogout, toast }) {
   const [tab, setTab] = useState('devices');
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingAutomation, setEditingAutomation] = useState(null);
+  const [logOpen, setLogOpen] = useState(false);
 
   const devices = useDevices(true, toast);
   const autos = useAutomations(true, toast);
@@ -39,9 +42,15 @@ function Home({ session, onLogout, toast }) {
   };
 
   const saveAutomation = async (payload) => {
-    await autos.create(payload);
-    setSheetOpen(false);
-    toast('התזמון נשמר');
+    if (editingAutomation) {
+      await autos.update(editingAutomation.id, payload);
+      setEditingAutomation(null);
+      toast('התזמון עודכן');
+    } else {
+      await autos.create(payload);
+      setSheetOpen(false);
+      toast('התזמון נשמר');
+    }
   };
 
   return (
@@ -58,6 +67,9 @@ function Home({ session, onLogout, toast }) {
         <div className="topbar-actions">
           <button type="button" className={`icon-btn ${devices.refreshing ? 'spinning' : ''}`} aria-label="רענון" onClick={refresh}>
             <RefreshCw size={20} />
+          </button>
+          <button type="button" className="icon-btn" aria-label="יומן פעילות" onClick={() => setLogOpen(true)}>
+            <History size={20} />
           </button>
           <button type="button" className="icon-btn" aria-label="התנתקות" onClick={onLogout}>
             <LogOut size={20} />
@@ -82,6 +94,7 @@ function Home({ session, onLogout, toast }) {
             loaded={autos.loaded}
             onAdd={() => setSheetOpen(true)}
             onToggle={autos.setEnabled}
+            onEdit={setEditingAutomation}
             onRemove={autos.remove}
           />
         )}
@@ -98,9 +111,15 @@ function Home({ session, onLogout, toast }) {
         </div>
       </nav>
 
-      {sheetOpen && (
-        <AutomationSheet groups={groups} onSave={saveAutomation} onClose={() => setSheetOpen(false)} />
+      {(sheetOpen || editingAutomation) && (
+        <AutomationSheet
+          groups={groups}
+          initial={editingAutomation}
+          onSave={saveAutomation}
+          onClose={() => { setSheetOpen(false); setEditingAutomation(null); }}
+        />
       )}
+      {logOpen && <LogSheet onClose={() => setLogOpen(false)} toast={toast} />}
     </div>
   );
 }

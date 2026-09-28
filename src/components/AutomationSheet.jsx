@@ -5,7 +5,7 @@ import {
   describeEvery, formatDuration, localDateKey, toMinutes,
 } from '../lib/constants';
 import { deviceId, deviceName, kindOf, switchChannels } from '../lib/devices';
-import { ModePicker, Segmented, Sheet } from './ui';
+import { ModePicker, Segmented, Sheet, TimeField } from './ui';
 
 const OFF_AFTER = [0, 15, 30, 45, 60, 90, 120];
 const EVERY = [30, 60, 90, 120, 180];
@@ -75,27 +75,47 @@ function ChipsWithCustom({ options, value, onChange, format, max = 1440, label }
   );
 }
 
-export default function AutomationSheet({ groups, onSave, onClose }) {
-  const [kind, setKind] = useState('weekly');
-  const [title, setTitle] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const [action, setAction] = useState('turn_on');
-  const [channel, setChannel] = useState('');
-  const [time, setTime] = useState('07:00');
-  const [endTime, setEndTime] = useState('06:00');
-  const [date, setDate] = useState(defaultOnceDate);
-  const [days, setDays] = useState([0, 1, 2, 3, 4, 5, 6]);
-  const [duration, setDuration] = useState(0);
-  const [every, setEvery] = useState(60);
-  const [pulse, setPulse] = useState(20);
-  const [ac, setAc] = useState({ temp: DEFAULT_AC.temp, mode: DEFAULT_AC.mode, wind: DEFAULT_AC.wind });
+export default function AutomationSheet({ groups, initial, onSave, onClose }) {
+  const editing = Boolean(initial);
+  const [kind, setKind] = useState(initial?.kind || 'weekly');
+  const [title, setTitle] = useState(initial?.title || '');
+  const [selectedId, setSelectedId] = useState(initial?.deviceId || '');
+  const [action, setAction] = useState(initial?.action || 'turn_on');
+  const [channel, setChannel] = useState(initial?.switchCode || '');
+  const [time, setTime] = useState(initial?.time || '07:00');
+  const [endTime, setEndTime] = useState(initial?.endTime || '06:00');
+  const [date, setDate] = useState(initial?.date || defaultOnceDate);
+  const [days, setDays] = useState(initial?.days?.length ? initial.days : [0, 1, 2, 3, 4, 5, 6]);
+  const [duration, setDuration] = useState(initial && initial.kind !== 'interval' ? (initial.durationMinutes ?? 0) : 0);
+  const [every, setEvery] = useState(initial?.everyMinutes || 60);
+  const [pulse, setPulse] = useState(initial?.kind === 'interval' ? (initial?.durationMinutes ?? 20) : 20);
+
+  const [ac, setAc] = useState({
+    temp: initial?.temp ?? DEFAULT_AC.temp,
+    mode: initial?.mode ?? DEFAULT_AC.mode,
+    wind: initial?.wind ?? DEFAULT_AC.wind,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const all = useMemo(() => [...groups.ac, ...groups.tv, ...groups.switch], [groups]);
+  const all = useMemo(() => {
+    const known = [...groups.ac, ...groups.tv, ...groups.switch];
+    // The device this automation was created for may since have gone offline or
+    // dropped off the list; keep it selectable so editing other fields still works.
+    if (initial && !known.some((d) => deviceId(d) === initial.deviceId)) {
+      return [...known, {
+        id: initial.deviceId, name: initial.deviceName, online: false, __unlisted: true,
+        infraredId: initial.infraredId, remote_index: initial.remoteIndex,
+        status: initial.switchCode ? [{ code: initial.switchCode, value: false }] : [],
+      }];
+    }
+    return known;
+  }, [groups, initial]);
   const device = all.find((d) => deviceId(d) === selectedId) || null;
-  const type = device ? kindOf(device) : null;
-  const channels = device && type === 'switch' ? switchChannels(device) : [];
+  const type = device
+    ? (device.__unlisted ? initial.type : kindOf(device))
+    : null;
+  const channels = device && type === 'switch' && !device.__unlisted ? switchChannels(device) : [];
   const isInterval = kind === 'interval';
   const turningOn = isInterval || action === 'turn_on';
 
@@ -125,6 +145,8 @@ export default function AutomationSheet({ groups, onSave, onClose }) {
     // Plugs and boilers are the ones that get left on, so they default to switching off later.
     setDuration(t === 'switch' ? 45 : 0);
   };
+
+
 
   const pickKind = (next) => {
     setKind(next);
@@ -158,6 +180,7 @@ export default function AutomationSheet({ groups, onSave, onClose }) {
       ...(isInterval ? { endTime, everyMinutes: every } : {}),
       ...(type === 'switch' && channel ? { switchCode: channel } : {}),
       ...(type === 'ac' && turningOn ? { temp: ac.temp, mode: ac.mode, wind: ac.wind } : {}),
+      ...(editing ? { enabled: true } : {}),
     };
     try {
       await onSave(payload);
@@ -172,14 +195,20 @@ export default function AutomationSheet({ groups, onSave, onClose }) {
     : 'למשל: דוד בבוקר';
 
   return (
-    <Sheet title="תזמון חדש" onClose={onClose}>
+    <Sheet title={editing ? 'עריכת תזמון' : 'תזמון חדש'} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        <div>
-          <span className="field-label">סוג תזמון</span>
-          <Segmented label="סוג תזמון" value={kind} onChange={pickKind} options={KINDS} />
-          {kind === 'once' && <p className="hint">ירוץ פעם אחת בתאריך שתבחרו, ואז ייסגר.</p>}
-          {isInterval && <p className="hint">למשל: להדליק את המזגן ל־20 דקות בכל שעה במשך הלילה.</p>}
-        </div>
+        {editing ? (
+          <p className="hint">
+            סוג התזמון ({KINDS.find((k) => k.value === kind)?.label}) לא ניתן לשינוי. כדי לשנות סוג, מחקו ויצרו תזמון חדש.
+          </p>
+        ) : (
+          <div>
+            <span className="field-label">סוג תזמון</span>
+            <Segmented label="סוג תזמון" value={kind} onChange={pickKind} options={KINDS} />
+            {kind === 'once' && <p className="hint">ירוץ פעם אחת בתאריך שתבחרו, ואז ייסגר.</p>}
+            {isInterval && <p className="hint">למשל: להדליק את המזגן ל־20 דקות בכל שעה במשך הלילה.</p>}
+          </div>
+        )}
 
         <div>
           <label className="field-label" htmlFor="auto-device">מכשיר</label>
@@ -254,18 +283,18 @@ export default function AutomationSheet({ groups, onSave, onClose }) {
         {isInterval ? (
           <div className="two">
             <div>
-              <label className="field-label" htmlFor="auto-time">מתחיל ב</label>
-              <input id="auto-time" className="input time-input compact" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+              <span className="field-label">מתחיל ב</span>
+              <TimeField label="שעת התחלה" value={time} onChange={setTime} compact />
             </div>
             <div>
-              <label className="field-label" htmlFor="auto-end">מסתיים ב</label>
-              <input id="auto-end" className="input time-input compact" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+              <span className="field-label">מסתיים ב</span>
+              <TimeField label="שעת סיום" value={endTime} onChange={setEndTime} compact />
             </div>
           </div>
         ) : (
           <div>
-            <label className="field-label" htmlFor="auto-time">שעה</label>
-            <input id="auto-time" className="input time-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+            <span className="field-label">שעה</span>
+            <TimeField label="שעה" value={time} onChange={setTime} />
           </div>
         )}
 
@@ -335,7 +364,7 @@ export default function AutomationSheet({ groups, onSave, onClose }) {
         {(error || problem) && <p className="aerror" role="alert">{error || problem}</p>}
 
         <button type="submit" className="btn block" disabled={!device || Boolean(problem) || busy}>
-          {busy ? 'שומר…' : 'שמירת תזמון'}
+          {busy ? 'שומר…' : editing ? 'שמירת שינויים' : 'שמירת תזמון'}
         </button>
       </form>
     </Sheet>

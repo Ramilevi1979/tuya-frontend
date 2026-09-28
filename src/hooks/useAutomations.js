@@ -34,6 +34,12 @@ export function useAutomations(enabled, toast) {
     }
   }, [toast]);
 
+  const update = useCallback(async (id, payload) => {
+    const updated = await api.updateAutomation(id, payload);
+    setAutomations((list) => list.map((a) => (a.id === id ? updated : a)));
+    return updated;
+  }, []);
+
   const remove = useCallback(async (id) => {
     try {
       await api.deleteAutomation(id);
@@ -44,5 +50,5 @@ export function useAutomations(enabled, toast) {
     }
   }, [toast]);
 
-  return { automations, loaded, reload, create, setEnabled, remove };
+  return { automations, loaded, reload, create, update, setEnabled, remove };
 }

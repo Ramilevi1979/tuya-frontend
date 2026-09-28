@@ -10,7 +10,7 @@ export default function TvCard({ device, toast }) {
   const press = async () => {
     setBusy(true);
     try {
-      await api.sendTvPower(device.infraredId, deviceId(device), device.remote_index);
+      await api.sendTvPower(device.infraredId, deviceId(device), device.remote_index, deviceName(device));
       toast('נשלחה פקודת הדלקה או כיבוי');
     } catch (err) {
       toast(err.message, 'error');

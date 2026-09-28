@@ -80,7 +80,7 @@ export default function AcCard({ device, toast }) {
 
   const send = async (code, value) => {
     try {
-      await api.sendAc(hub, id, code, value);
+      await api.sendAc(hub, id, code, value, deviceName(device));
       confirmed.current = { ...confirmed.current, [code]: value };
       saveAcState(id, confirmed.current);
     } catch (err) {

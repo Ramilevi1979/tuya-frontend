@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { CalendarClock, Plus, Trash2 } from 'lucide-react';
+import { CalendarClock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { MODES, describeDate, describeDays, describeEvery, formatDuration } from '../lib/constants';
 import { Toggle } from './ui';
 
-export default function AutomationsView({ automations, loaded, onAdd, onToggle, onRemove }) {
+export default function AutomationsView({ automations, loaded, onAdd, onToggle, onEdit, onRemove }) {
   const [confirmId, setConfirmId] = useState(null);
 
   const sorted = useMemo(
@@ -82,9 +82,16 @@ export default function AutomationsView({ automations, loaded, onAdd, onToggle, 
                       <button type="button" onClick={() => setConfirmId(null)}>ביטול</button>
                     </div>
                   ) : (
-                    <button type="button" className="trash" aria-label={`מחיקת התזמון ${a.title}`} onClick={() => setConfirmId(a.id)}>
-                      <Trash2 size={17} />
-                    </button>
+                    <div className="row-actions">
+                      {!finished && (
+                        <button type="button" className="trash" aria-label={`עריכת התזמון ${a.title}`} onClick={() => onEdit(a)}>
+                          <Pencil size={16} />
+                        </button>
+                      )}
+                      <button type="button" className="trash" aria-label={`מחיקת התזמון ${a.title}`} onClick={() => setConfirmId(a.id)}>
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </li>
